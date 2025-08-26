@@ -1,4 +1,21 @@
+# Spring modules included in this project: 
+
+Spring MVC + Spring Data JPA + Bean Validation, along with testing libraries. No security module is added yet.
+
+1. Spring Boot Starter Web
+ * This dependency includes Spring MVC.\
+    Provides REST controller support, embedded Tomcat server, and JSON serialization (via Jackson).
+
+2. Spring Data JPA
+ * This dependency provides Spring Data JPA.\
+   Handles database access via JPA repositories.\
+   There is PostgreSQL as runtime database, so this is fully integrated.
+
+3. Spring Boot Starter Validation
+ * For unit and integration testing (JUnit, Mockito, etc.).
+
 # This project uses:
+
  * Spring Boot 3.4.3
  * Java 17
  * PostgreSQL (runtime database)
