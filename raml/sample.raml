@@ -1,0 +1,88 @@
+#%RAML 1.0
+title: Demo User API
+version: 1.0
+baseUri: http://localhost:8080/api
+mediaType: application/json
+
+types:
+  UserRequest:
+    type: object
+    properties:
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      address: string
+      country: string
+    required: [firstName, lastName, email, phone, address, country]
+
+  UserUpdateRequest:
+    type: object
+    properties:
+      id: string
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      address: string
+      country: string
+    required: [id]
+
+  UserResponse:
+    type: object
+    properties:
+      id: string
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      address: string
+      country: string
+
+/users:
+  post:
+    description: Create a new user
+    body:
+      application/json:
+        type: UserRequest
+    responses:
+      200:
+        body:
+          application/json:
+            type: UserResponse
+
+/{userId}:
+    uriParameters:
+      userId:
+        type: string
+        description: ID of the user
+    get:
+      description: Get a user by ID
+      responses:
+        200:
+          body:
+            application/json:
+              type: UserResponse
+        404:
+          description: User not found
+
+    put:
+      description: Update a user
+      body:
+        application/json:
+          type: UserUpdateRequest
+      responses:
+        200:
+          body:
+            application/json:
+              type: UserResponse
+        404:
+          description: User not found
+
+    delete:
+      description: Delete a user by ID
+      responses:
+        204:
+          description: User deleted successfully
+        404:
+          description: User not found

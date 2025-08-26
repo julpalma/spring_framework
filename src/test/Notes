@@ -1,0 +1,7 @@
+MVC: Model View Controller
+
+Model: Data + Business Logic
+View: What the user sees
+Controller: Incoming requests from the user
+
+Test in the browser: http://localhost:8080/api/v1/candidate
