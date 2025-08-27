@@ -16,7 +16,8 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(generator = "UUID")
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
     private String firstName;
@@ -27,4 +28,7 @@ public class User {
 
     @Enumerated
     private Country country;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private UserCredentials userCredentials;
 }

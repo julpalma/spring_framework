@@ -1,8 +1,11 @@
 package com.example.demo.services;
 
+import com.example.demo.dto.UserCredentialsUpdateRequest;
 import com.example.demo.dto.UserRequest;
 import com.example.demo.dto.UserUpdateRequest;
 import com.example.demo.enums.Country;
+import com.example.demo.model.UserCredentials;
+import com.example.demo.repository.UserCredentialsRepository;
 import com.example.demo.testHelpers.TestUtilities;
 import com.example.demo.testHelpers.TestUtilities.*;
 import com.example.demo.exceptions.UserNotFoundException;
@@ -23,10 +26,15 @@ public class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserCredentialsRepository userCredentialsRepository;
+
     @InjectMocks
     private UserServiceImpl userService;
 
     User user = TestUtilities.buildUser();
+
+    UserCredentials userCredentials = TestUtilities.buildUserCredentials();
 
     @BeforeEach
     void setUp() {
@@ -35,8 +43,8 @@ public class UserServiceImplTest {
 
     @Test
     void createUser_ReturnsSavedUser() {
-
         when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userCredentialsRepository.save(any(UserCredentials.class))).thenReturn(userCredentials);
 
         UserRequest request = TestUtilities.buildUserRequest();
 
@@ -73,6 +81,30 @@ public class UserServiceImplTest {
         verify(userRepository, times(1)).findById(user.getId());
     }
 
+    @Test
+    void getUserCredentials_UserExists_ReturnsUserCredentials() {
+
+        when(userCredentialsRepository.findById(userCredentials.getId())).thenReturn(Optional.of(userCredentials));
+
+        var response = userService.getUserCredentials(userCredentials.getId().toString());
+
+        assertNotNull(response);
+        assertEquals(userCredentials.getUsername(), response.get().getUsername());
+        verify(userCredentialsRepository, times(1)).findById(userCredentials.getId());
+    }
+
+    @Test
+    void getUserCredentials_UserDoesNotExist_ReturnsEmpty() {
+
+        when(userCredentialsRepository.findById(userCredentials.getId())).thenReturn(Optional.empty());
+
+        var response = userService.getUserCredentials(userCredentials.getId().toString());
+
+        assertNotNull(response);
+        assertEquals(Optional.empty(), response);
+        verify(userCredentialsRepository, times(1)).findById(userCredentials.getId());
+    }
+
     //Update address only for user
     @Test
     void updateUser_ReturnsUpdatedUser() {
@@ -92,7 +124,7 @@ public class UserServiceImplTest {
         when(userRepository.findById(UUID.fromString(userUpdateRequest.getId()))).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
 
-        var response = userService.updateUser(userUpdateRequest);
+        var response = userService.updateUser(userUpdateRequest.getId(), userUpdateRequest, user.getUserCredentials().getUsername());
 
         assertNotNull(response);
         assertEquals("Juliana", response.getFirstName());
@@ -128,7 +160,7 @@ public class UserServiceImplTest {
         when(userRepository.findById(UUID.fromString(userUpdateRequest.getId()))).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
 
-        var response = userService.updateUser(userUpdateRequest);
+        var response = userService.updateUser(userUpdateRequest.getId(), userUpdateRequest, user.getUserCredentials().getUsername());
 
         assertNotNull(response);
         assertEquals(userUpdateRequest.getFirstName(), response.getFirstName());
@@ -140,10 +172,91 @@ public class UserServiceImplTest {
     void updateUser_UserNotFound_ReturnsException() {
         UserUpdateRequest userUpdateRequest = TestUtilities.buildUserUpdateRequest();
 
-        RuntimeException ex = assertThrows(UserNotFoundException.class, () -> userService.updateUser(userUpdateRequest));
+        RuntimeException ex = assertThrows(UserNotFoundException.class, () -> userService.updateUser(userUpdateRequest.getId(), userUpdateRequest, user.getUserCredentials().getUsername()));
 
         assertEquals("User {} " + userUpdateRequest.getId() + " not found.", ex.getMessage());
         verify(userRepository, times(1)).findById(UUID.fromString(userUpdateRequest.getId()));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUserCredentials_ReturnsUpdatedUserCredentials() {
+        UserCredentialsUpdateRequest userCredentialsUpdateRequest = TestUtilities.buildUserCredentialsUpdateRequest();
+        userCredentialsUpdateRequest.setUsername("newUsername");
+
+        //Update address
+        User updatedUser = User.builder()
+                .id(UUID.fromString(userCredentialsUpdateRequest.getId()))
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .address(user.getAddress())
+                .country(user.getCountry())
+                .userCredentials(userCredentials)
+                .build();
+
+        UserCredentials userCredentialsUpdated = UserCredentials.builder()
+                .id(updatedUser.getId())
+                .username(userCredentialsUpdateRequest.getUsername())
+                .password(userCredentialsUpdateRequest.getPassword()).
+                build();
+
+        when(userRepository.findById(UUID.fromString(userCredentialsUpdateRequest.getId()))).thenReturn(Optional.of(user));
+        when(userCredentialsRepository.save(any(UserCredentials.class))).thenReturn(userCredentialsUpdated);
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+
+        var response = userService.updateUserCredentials(userCredentialsUpdateRequest);
+
+        assertNotNull(response);
+        assertEquals(userCredentialsUpdateRequest.getUsername(), response.getUsername());
+        verify(userRepository, times(1)).findById(UUID.fromString(userCredentialsUpdateRequest.getId()));
+    }
+
+    //For code coverage
+    @Test
+    void updateUserCredentials_OnlyPassword_ReturnsUpdatedUserCredentials() {
+        UserCredentialsUpdateRequest userCredentialsUpdateRequest = TestUtilities.buildUserCredentialsUpdateRequest();
+        userCredentialsUpdateRequest.setPassword("newPassword");
+
+        //Update address
+        User updatedUser = User.builder()
+                .id(UUID.fromString(userCredentialsUpdateRequest.getId()))
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .address(user.getAddress())
+                .country(user.getCountry())
+                .userCredentials(userCredentials)
+                .build();
+
+        UserCredentials userCredentialsUpdated = UserCredentials.builder()
+                .id(updatedUser.getId())
+                .username(userCredentialsUpdateRequest.getUsername())
+                .password(userCredentialsUpdateRequest.getPassword()).
+                build();
+
+        when(userRepository.findById(UUID.fromString(userCredentialsUpdateRequest.getId()))).thenReturn(Optional.of(user));
+        when(userCredentialsRepository.save(any(UserCredentials.class))).thenReturn(userCredentialsUpdated);
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+
+        var response = userService.updateUserCredentials(userCredentialsUpdateRequest);
+
+        assertNotNull(response);
+        assertEquals(userCredentialsUpdateRequest.getUsername(), response.getUsername());
+        verify(userRepository, times(1)).findById(UUID.fromString(userCredentialsUpdateRequest.getId()));
+    }
+
+    @Test
+    void updateUserCredentials_UserIsNotFound_ReturnsEmpty() {
+        UserCredentialsUpdateRequest userCredentialsUpdateRequest = TestUtilities.buildUserCredentialsUpdateRequest();
+        userCredentialsUpdateRequest.setPassword("newPassword");
+
+        RuntimeException ex = assertThrows(UserNotFoundException.class, () -> userService.updateUserCredentials(userCredentialsUpdateRequest));
+
+        assertEquals("User {} " + userCredentialsUpdateRequest.getId() + " not found.", ex.getMessage());
+        verify(userRepository, times(1)).findById(UUID.fromString(userCredentialsUpdateRequest.getId()));
         verify(userRepository, never()).save(any());
     }
 

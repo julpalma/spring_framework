@@ -17,5 +17,6 @@ public class UserResponse {
     private Integer phone;
     private String address;
     private String country;
+    protected String username;
 }
 

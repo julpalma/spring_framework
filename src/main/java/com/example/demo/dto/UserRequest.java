@@ -32,4 +32,11 @@ public class UserRequest {
 
     @NotBlank(message = "Country code is required")
     private String country;
+
+    @NotBlank(message = "Username is required")
+    private String username;
+
+    @NotBlank(message = "Password is required")
+    private String password;
+
 }

@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -15,7 +17,7 @@ import java.util.Optional;
 //API Layer
 @Slf4j
 @RestController
-@RequestMapping(path = "api/v1/user")
+@RequestMapping(path = "/api/v1/user")
 public class UserController {
 
     private final UserServiceInterface userInterface;
@@ -47,9 +49,11 @@ public class UserController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable("id") String id, @Valid @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<UserResponse> updateUser(@PathVariable("id") String id,
+                                                   @Valid @RequestBody UserUpdateRequest request,
+                                                   @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            UserResponse userResponse = userInterface.updateUser(request);
+            UserResponse userResponse = userInterface.updateUser(id, request, userDetails.getUsername());
             return new ResponseEntity<>(userResponse, HttpStatus.OK);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

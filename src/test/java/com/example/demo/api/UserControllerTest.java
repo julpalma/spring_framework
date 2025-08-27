@@ -10,8 +10,10 @@ import com.example.demo.testHelpers.TestUtilities;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -22,8 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-@WebMvcTest(UserController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 public class UserControllerTest {
 
     @Autowired
@@ -45,7 +49,8 @@ public class UserControllerTest {
 
         MvcResult result = mockMvc.perform(post("/api/v1/user")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userRequest)))
+                        .content(objectMapper.writeValueAsString(userRequest))
+                        .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.firstName").value(userRequest.getFirstName()))
                 .andExpect(jsonPath("$.email").value(userRequest.getEmail())).andReturn();
@@ -61,7 +66,9 @@ public class UserControllerTest {
 
         when(userService.getUserById(user.getId().toString())).thenReturn(Optional.of(userResponse));
 
-        MvcResult result = mockMvc.perform(get("/api/v1/user/{id}", user.getId()).contentType(MediaType.APPLICATION_JSON))
+        MvcResult result = mockMvc.perform(get("/api/v1/user/{id}", user.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName").value(user.getFirstName()))
                 .andExpect(jsonPath("$.email").value(user.getEmail())).andReturn();
@@ -76,17 +83,19 @@ public class UserControllerTest {
         when(userService.getUserById(user.getId().toString())).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/user/{id}", user.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andReturn();
     }
 
     @Test
+    @WithMockUser(username = "testuser") //mocks an authenticated user
     void updateUser_UserExists_Returns200() throws Exception {
         UserResponse userResponse = TestUtilities.buildUserResponseUpdated();
         UserUpdateRequest userUpdateRequest = TestUtilities.buildUserUpdateRequest();
 
-        when(userService.updateUser(userUpdateRequest)).thenReturn(userResponse);
+        when(userService.updateUser(userUpdateRequest.getId(), userUpdateRequest, "testuser")).thenReturn(userResponse);
 
         MvcResult result = mockMvc.perform(put("/api/v1/user/{id}", userUpdateRequest.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,12 +109,13 @@ public class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     void updateUser_UserNotFound_Returns404() throws Exception {
         UserUpdateRequest userUpdateRequest = TestUtilities.buildUserUpdateRequest();
 
-        when(userService.updateUser(userUpdateRequest)).thenThrow(new UserNotFoundException("User not found."));
+        when(userService.updateUser(userUpdateRequest.getId(), userUpdateRequest, "testuser")).thenThrow(new UserNotFoundException("User not found."));
 
-        mockMvc.perform(put("/api/v1/user/{id}", user.getId())
+        mockMvc.perform(put("/api/v1/user/{id}", userUpdateRequest.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userUpdateRequest)))
                 .andExpect(status().isNotFound())
@@ -113,6 +123,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     void deleteUser_Returns200() throws Exception {
         User user = TestUtilities.buildUser();
 
@@ -123,6 +134,7 @@ public class UserControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser")
     void deleteUser_UserNotFound_Returns404() throws Exception {
         User user = TestUtilities.buildUser();
 
