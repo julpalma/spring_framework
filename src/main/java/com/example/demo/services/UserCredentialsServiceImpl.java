@@ -1,10 +1,8 @@
 package com.example.demo.services;
 
 import com.example.demo.dto.*;
-import com.example.demo.model.User;
 import com.example.demo.model.UserCredentials;
 import com.example.demo.repository.UserCredentialsRepository;
-import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
